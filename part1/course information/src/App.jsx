@@ -20,6 +20,7 @@ const App = () => {
       },
     ],
   };
+  const total = course.parts.reduce((sum, item) => sum + item.exercises, 0);
 
   return (
     <div>
@@ -34,8 +35,8 @@ const App = () => {
       })}
 
       <p>
-        {/* Number of exercises
-        {part1.exercises + part2.exercises + part3.exercises} */}
+        Number of exercises
+        <Total total={total}></Total>
       </p>
     </div>
   );
