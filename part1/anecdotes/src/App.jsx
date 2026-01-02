@@ -21,6 +21,10 @@ const App = () => {
     setVotes(updateVotes);
   };
 
+  const mostVoted = votes.indexOf(Math.max(...votes));
+
+  console.log(mostVoted);
+
   return (
     <div>
       <div>{anecdotes[selected]}</div>
@@ -32,6 +36,8 @@ const App = () => {
       >
         generate
       </button>
+      <h2>Anecdotes most voted</h2>
+      <div>{anecdotes[mostVoted]}</div>
     </div>
   );
 };
