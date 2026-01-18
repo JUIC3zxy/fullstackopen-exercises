@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useEffect } from "react";
-import axios from "axios";
+import personService from "./services/person";
+import "./App.css";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState("");
+  const [notification, setNotification] = useState("");
+  let [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {
     console.log("effect");
-    axios.get("http://localhost:3001/persons").then((response) => {
+    personService.getAll().then((initialPersons) => {
       console.log("promise fulfilled");
-      setPersons(response.data);
+      setPersons(initialPersons);
     });
   }, []);
   console.log("render", persons.length, "persons");
@@ -26,6 +29,21 @@ const App = () => {
   const handleFilterChange = (event) => {
     setFilter(event.target.value);
   };
+  const handleDelete = (id) => {
+    const person = persons.find((p) => p.id === id);
+
+    if (window.confirm(`Delete ${person.name} ?`)) {
+      personService
+        .deletePerson(id)
+        .then(() => {
+          setPersons(persons.filter((p) => p.id !== id));
+        })
+        .catch(() => {
+          alert(`the person '${person.name}' was already deleted from server`);
+          setPersons(persons.filter((p) => p.id !== id));
+        });
+    }
+  };
   const fileteredPersons = persons.filter((person) =>
     person.name.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -34,7 +52,23 @@ const App = () => {
     event.preventDefault();
     const nameExists = persons.some((person) => person.name === newName);
     if (nameExists) {
-      alert(`${newName} is already added to phonebook`);
+      const person = persons.find((p) => p.name === newName);
+      const id = person.id;
+      if (
+        window.confirm(`Name already exist. Do you want replace ${newName} ?`)
+      ) {
+        personService
+          .update(id, { name: newName, number: newNumber })
+          .then((returnedPerson) => {
+            setPersons(
+              persons.map((person) =>
+                person.id !== id ? person : returnedPerson,
+              ),
+            );
+            setNewName("");
+            setNewNumber("");
+          });
+      }
       return;
     }
     if (newNumber === "") {
@@ -44,11 +78,20 @@ const App = () => {
     const personObject = {
       name: newName,
       number: newNumber,
-      id: persons.length + 1,
+      id: `${persons.length + 1}`,
     };
-    setPersons(persons.concat(personObject));
-    setNewName("");
-    setNewNumber("");
+
+    personService.create(personObject).then((response) => {
+      setPersons(persons.concat(response));
+      setNotification(response.name);
+      setShowAlert(true);
+      setTimeout(() => {
+        setShowAlert(false);
+      }, 5000);
+
+      setNewName("");
+      setNewNumber("");
+    });
   };
   return (
     <div>
@@ -56,7 +99,9 @@ const App = () => {
       <div>
         filter: <input value={filter} onChange={handleFilterChange} />
       </div>
-
+      {showAlert && (
+        <div className="alert">{notification} is added to the Phonebook</div>
+      )}
       <h2>Phonebook</h2>
       <form onSubmit={addPerson}>
         <div>
@@ -71,8 +116,11 @@ const App = () => {
       </form>
       <h2>Numbers</h2>
       {fileteredPersons.map((person) => (
-        <p key={person.name}>
-          {person.name}:{person.number}
+        <p key={person.id}>
+          {person.name}:{person.number}{" "}
+          <button type="delete" onClick={() => handleDelete(person.id)}>
+            delete
+          </button>
         </p>
       ))}
     </div>
